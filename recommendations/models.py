@@ -3,15 +3,10 @@ from django.db import models
 
 
 class Product(models.Model):
-    # The unique product identifier (ASIN)
     asin = models.CharField(max_length=50, primary_key=True)
-    # Title of the product
     title = models.CharField(max_length=255)
-    # Price of the product (optional)
     price = models.FloatField(null=True, blank=True)
-    # Features of the product stored as a JSON field (can store an array)
     features = models.JSONField(null=True, blank=True)
-    # Parent ASIN for grouping similar products
     parent_asin = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
