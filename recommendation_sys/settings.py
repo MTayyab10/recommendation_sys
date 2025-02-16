@@ -77,10 +77,15 @@ WSGI_APPLICATION = 'recommendation_sys.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'recommendations',  # Database name
+        'USER': 'Tayyab10',  # PostgreSQL user
+        'PASSWORD': 'tayyab185192',  # Replace with your PostgreSQL user password
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
+
 
 
 # Password validation
