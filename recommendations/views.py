@@ -1,27 +1,51 @@
 from django.http import JsonResponse
 from .utils import create_interaction_matrix, calculate_similarity, recommend_for_user
-from recommendations.models import Product
+from recommendations.models import Product, Review
+from rest_framework import viewsets
+from .serializers import ProductSerializer, ReviewSerializer
+
 
 def recommend_products(request, user_id):
-    # Step 1: Create the interaction matrix
-    interaction_matrix = create_interaction_matrix()
+    """
+    API endpoint to get product recommendations for a given user.
+    It builds the user-item interaction matrix from reviews,
+    computes user similarities, and then returns top-N product recommendations.
+    """
+    # Step 1: Create the interaction matrix and get all product IDs (using enriched meta info)
+    user_item_matrix, all_items = create_interaction_matrix()
 
-    # Step 2: Calculate similarity matrix
-    similarity_matrix, user_ids = calculate_similarity(interaction_matrix)
+    # Step 2: Compute cosine similarity between users
+    similarity_matrix, user_ids = calculate_similarity(user_item_matrix, all_items)
 
-    # Step 3: Get recommendations for the user
-    recommended_product_ids = recommend_for_user(user_id, interaction_matrix, similarity_matrix, user_ids)
+    # Step 3: Generate recommendations for the given user_id
+    recommended_ids = recommend_for_user(user_id, user_item_matrix, similarity_matrix, user_ids, n_recommendations=5)
 
-    # Step 4: Fetch product details for recommended product ASINs
-    recommended_products = Product.objects.filter(asin__in=recommended_product_ids)
-    product_data = [
-        {
+    # Step 4: Query enriched Product details for each recommended product
+    products = Product.objects.filter(asin__in=recommended_ids)
+    product_list = []
+    for product in products:
+        product_list.append({
             'asin': product.asin,
             'title': product.title,
-            'price': product.price
-        }
-        for product in recommended_products
-    ]
+            'price': product.price,
+            'features': product.features,
+            'images': product.images
+        })
 
-    # Return the product recommendations as JSON
-    return JsonResponse({'recommendations': product_data})
+    return JsonResponse({'recommendations': product_list})
+
+
+class ProductViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows products to be viewed or edited.
+    """
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows reviews to be viewed or edited.
+    """
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
