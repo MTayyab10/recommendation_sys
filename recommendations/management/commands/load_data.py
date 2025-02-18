@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'Start loading meta data from {meta_file}...'))
         meta_lines = 0
-        product_limit = 100  # Adjust the limit as needed (currently processing first 100 products)
+        product_limit = 100000  # Adjust the limit as needed (currently processing first 100 products)
         current_product_line = 0
 
         with open(meta_file, 'r') as fp:
@@ -72,7 +72,7 @@ class Command(BaseCommand):
             return
 
         self.stdout.write(self.style.SUCCESS(f'Start loading review data from {review_file}...'))
-        limit = 100  # Adjust the limit as needed (currently processing first 100 reviews)
+        limit = 100000  # Adjust the limit as needed (currently processing first 100 reviews)
         current_review_line = 0
 
         with open(review_file, 'r') as fp:
