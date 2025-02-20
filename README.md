@@ -1,19 +1,16 @@
-Below is an updated README that now incorporates detailed information about both data sources—user reviews and product meta data—with sample JSON objects and explanation of each field.
+## Collaborative Filtering for Intelligent E-commerce Recommendation Systems: A Comparative Analysis of Memory-Based, Matrix Factorization, and Hybrid Approaches
 
----
+### Overview
 
-```markdown
-# Intelligent E-commerce Recommendation System
+This project aims to build an **Intelligent E-commerce Recommendation System** using **Collaborative Filtering (CF)** augmented with rich product metadata. The system recommends products to users based on their historical interactions (ratings, reviews, timestamps, etc.) and leverages separate metadata to enrich product information. The approach employs a **User-Item Interaction Matrix** and cosine similarity for the memory-based method, utilizes matrix factorization (e.g., SVD) to uncover latent factors for scalability and improved accuracy, and integrates these methods into a **Hybrid Recommendation Framework** that combines their strengths.
 
-## Overview
-
-This project aims to build an **Intelligent E-commerce Recommendation System** using **Collaborative Filtering (CF)** augmented with rich product metadata. The system recommends products to users based on their historical interactions (ratings, reviews, timestamps, etc.) and leverages separate meta data to enrich product information. The approach uses a **User-Item Interaction Matrix** and cosine similarity to identify similar users, and it is designed to be later extended with matrix factorization (e.g., SVD) for scalability and improved accuracy.
-
-The system is built using **Django** as the web framework, and a RESTful API is provided to deliver personalized product recommendations. The backend is structured to integrate two types of Amazon Reviews'23 data:
+The system is built using **Django** as the web framework, and a RESTful API is provided to deliver personalized product recommendations. The backend integrates two types of data from the Amazon Reviews'23 dataset:
 - **User Reviews** (interaction data)
 - **Item Metadata** (rich product details)
 
-## Table of Contents
+---
+
+### Table of Contents
 
 - [Project Setup](#project-setup)
 - [Data](#data)
@@ -22,7 +19,8 @@ The system is built using **Django** as the web framework, and a RESTful API is 
 - [Features](#features)
 - [Methodology](#methodology)
   - [Collaborative Filtering](#collaborative-filtering)
-  - [Matrix Factorization (Future Work)](#matrix-factorization-future-work)
+  - [Matrix Factorization](#matrix-factorization)
+  - [Hybrid Filtering](#hybrid-filtering)
   - [Evaluation](#evaluation)
 - [Run the Project](#run-the-project)
 - [API Documentation](#api-documentation)
@@ -30,7 +28,7 @@ The system is built using **Django** as the web framework, and a RESTful API is 
 
 ---
 
-## Project Setup
+### Project Setup
 
 1. **Clone the Repository:**
    ```bash
@@ -63,216 +61,177 @@ The system is built using **Django** as the web framework, and a RESTful API is 
 
 ---
 
-## Data
+### Data
 
-### Dataset Description
+#### Dataset Description
 
 The dataset is based on the [Amazon Reviews'23](https://amazon-reviews-2023.github.io/) collection by McAuley Lab and consists of two parts:
 
-1. **User Reviews** (JSONL format):
-   - **Sample:**
-     ```json
-     {
-       "sort_timestamp": 1634275259292,
-       "rating": 3.0,
-       "helpful_votes": 0,
-       "title": "Meh",
-       "text": "These were lightweight and soft but much too small for my liking. I would have preferred two of these together to make one loc. For that reason I will not be repurchasing.",
-       "images": [
-         {
-           "small_image_url": "https://m.media-amazon.com/images/I/81FN4c0VHzL._SL256_.jpg",
-           "medium_image_url": "https://m.media-amazon.com/images/I/81FN4c0VHzL._SL800_.jpg",
-           "large_image_url": "https://m.media-amazon.com/images/I/81FN4c0VHzL._SL1600_.jpg",
-           "attachment_type": "IMAGE"
-         }
-       ],
-       "asin": "B088SZDGXG",
-       "verified_purchase": true,
-       "parent_asin": "B08BBQ29N5",
-       "user_id": "AEYORY2AVPMCPDV57CE337YU5LXA"
-     }
-     ```
-   - **Field Explanations:**
-     - **rating**: Numeric rating (1–5 scale).
-     - **title**: Title of the review.
-     - **text**: Full review text.
-     - **asin**: Unique product ID.
-     - **parent_asin**: Group identifier for variants (helps in aggregating products).
-     - **user_id**: Identifier of the reviewer.
-     - **timestamp**: Unix timestamp (in milliseconds).
-     - **helpful_votes**: Count of helpful votes.
-     - **verified_purchase**: Indicates if the purchase was verified.
-     - **images**: List of image objects (may be empty).
+1. **User Reviews (All_Beauty.jsonl):**  
+   Contains user-generated review data with fields such as:
+   - **rating:** Numeric rating (1–5 scale).
+   - **title:** Title of the review.
+   - **text:** Full review text.
+   - **asin:** Unique product identifier.
+   - **parent_asin:** Group identifier for variants.
+   - **user_id:** Reviewer ID.
+   - **timestamp:** When the review was posted (in milliseconds).
+   - **helpful_votes:** Number of helpful votes.
+   - **verified_purchase:** Indicates if the review is for a verified purchase.
+   - **images:** List of image objects (often empty).
 
-2. **Product Metadata** (JSONL format):
-   - **Sample:**
-     ```json
-     {
-       "main_category": "All Beauty",
-       "title": "Howard LC0008 Leather Conditioner, 8-Ounce (4-Pack)",
-       "average_rating": 4.8,
-       "rating_number": 10,
-       "features": [],
-       "description": [],
-       "price": null,
-       "images": [
-         {
-           "thumb": "https://m.media-amazon.com/images/I/41qfjSfqNyL._SS40_.jpg",
-           "large": "https://m.media-amazon.com/images/I/41qfjSfqNyL.jpg",
-           "variant": "MAIN",
-           "hi_res": null
-         },
-         {
-           "thumb": "https://m.media-amazon.com/images/I/41w2yznfuZL._SS40_.jpg",
-           "large": "https://m.media-amazon.com/images/I/41w2yznfuZL.jpg",
-           "variant": "PT01",
-           "hi_res": "https://m.media-amazon.com/images/I/71i77AuI9xL._SL1500_.jpg"
-         }
-       ],
-       "videos": [],
-       "bought_together": null,
-       "store": "Howard Products",
-       "categories": [],
-       "details": {
-         "Package Dimensions": "7.1 x 5.5 x 3 inches; 2.38 Pounds",
-         "UPC": "617390882781"
-       },
-       "parent_asin": "B01CUPMQZE"
-     }
-     ```
-   - **Field Explanations:**
-     - **main_category**: The primary domain of the product.
-     - **title**: Official product title (more reliable than review titles).
-     - **average_rating**: Aggregated product rating.
-     - **rating_number**: Number of ratings.
-     - **features**: List of product features.
-     - **description**: Product description.
-     - **price**: Price of the product (can be null).
-     - **images**: List of image objects (each with thumb, large, hi_res, and variant).
-     - **videos**: List of product videos.
-     - **store**: Store name.
-     - **categories**: Hierarchical product categories.
-     - **details**: Additional product details (dimensions, UPC, etc.).
-     - **parent_asin**: Group identifier for product variants.
-     - **bought_together**: Recommendations for bundled products.
+2. **Product Metadata (meta_All_Beauty.jsonl):**  
+   Provides enriched product information with fields such as:
+   - **main_category:** Primary category of the product.
+   - **title:** Official product title.
+   - **average_rating:** Aggregated rating.
+   - **rating_number:** Total number of ratings.
+   - **features:** List of product features.
+   - **description:** Product description.
+   - **price:** Product price (can be null).
+   - **images:** List of image objects (each with `thumb`, `large`, `hi_res`, and `variant`).
+   - **videos, store, categories, details, parent_asin, bought_together:** Additional fields.
 
-### Data Preprocessing
+#### Data Preprocessing
 
-- **Data Loading**:  
-  Two separate management commands load the data:
-  - **Reviews**: Loaded into the `Review` model.
-  - **Meta Data**: Loaded into the `Product` model.
-- **Product Enrichment**:  
-  The meta data updates the `Product` model with fields like `title`, `price`, `features`, and `images`. Reviews reference these enriched Product entries.
-- **Interaction Matrix Construction**:  
-  A user-item interaction matrix is built from reviews, using the product’s `parent_asin` (if available) to aggregate similar items.
+- **Data Loading:**  
+  The `load_data` management command reads both the review and metadata files, populates the `Review` and `Product` models, and links reviews to enriched products (using `parent_asin` when available).
 
-In early testing, a subset (e.g., 10,000 entries) is processed. This can be scaled up as needed.
+- **Interaction Matrix:**  
+  For collaborative filtering, a user–item interaction matrix is built from review ratings.
 
 ---
 
-## Features
+### Features
 
-- **User-Based Collaborative Filtering**: Recommends products by finding users similar to the current user using cosine similarity.
-- **Item-Based Collaborative Filtering**: (Future extension) Recommends products similar to those a user has interacted with.
-- **Hybrid Filtering**: (Future work) Combine collaborative signals with content-based features from product metadata.
-- **Batch Data Insertion**: Efficiently loads large datasets via bulk inserts.
-- **Rich API**: Provides endpoints for personalized recommendations enriched with detailed product meta data.
-
----
-
-## Methodology
-
-### Collaborative Filtering
-
-The system builds a **User-Item Interaction Matrix** from review ratings, using cosine similarity to measure user similarity. The recommendations are generated by computing a weighted sum of ratings from similar users. For instance:
-```python
-from sklearn.metrics.pairwise import cosine_similarity
-user_similarity = cosine_similarity(interaction_matrix)
-```
-
-### Matrix Factorization (Future Work)
-
-To further improve accuracy and scalability, matrix factorization (e.g., using SVD) will be explored. This method decomposes the interaction matrix into latent factors representing user preferences and item attributes.
-
-### Evaluation
-
-Model performance will be evaluated using:
-- **RMSE (Root Mean Squared Error)**
-- **Precision/Recall@K**
-
-Example using the `surprise` library:
-```python
-from surprise import SVD, Dataset, Reader, accuracy
-```
+- **Memory-Based Collaborative Filtering:**  
+  Uses cosine similarity on the user–item interaction matrix to recommend products based on similar users.
+- **Matrix Factorization (SVD):**  
+  Decomposes the interaction matrix into latent factors to predict ratings more efficiently, offering improved scalability and accuracy.
+- **Hybrid Filtering:**  
+  Integrates the memory-based and matrix factorization approaches by combining their recommendation scores using a weighted mechanism. This novel hybrid approach aims to overcome limitations such as data sparsity and cold start issues.
+- **Batch Data Insertion:**  
+  Efficient data loading with bulk inserts.
+- **Rich API:**  
+  Endpoints for retrieving personalized product recommendations.
 
 ---
 
-## Run the Project
+### Methodology
 
-### Steps to Run the Project:
+#### Collaborative Filtering
 
-1. **Environment Setup**:  
-   Follow the [Project Setup](#project-setup) instructions to install dependencies and configure the database.
-   
-2. **Load the Data**:  
-   Run the management command to load both review and meta data:
+- **Memory-Based CF:**  
+  Directly computes user similarities using cosine similarity. For example:
+  ```python
+  from sklearn.metrics.pairwise import cosine_similarity
+  user_similarity = cosine_similarity(interaction_matrix)
+  ```
+
+#### Matrix Factorization
+
+- **SVD (Singular Value Decomposition):**  
+  Decomposes the interaction matrix into latent factors to predict ratings more efficiently. (Implemented in the `train_mf` command.)
+
+#### Hybrid Filtering
+
+The hybrid model combines scores from both memory-based and SVD-based methods:
+- **Memory-Based Scores:**  
+  Derived from the user–item interaction matrix.
+- **SVD-Based Scores:**  
+  Predicted using the pre-trained SVD model.
+- **Combination Strategy:**  
+  A weighted sum of the two scores:
+  ```python
+  hybrid_score = w_memory * (memory-based score) + w_svd * (SVD-based score)
+  ```
+  This approach produces a final ranked list of recommendations that leverages the strengths of both methods.
+
+#### Evaluation
+
+Evaluation metrics include:
+- **RMSE (Root Mean Squared Error):** Measures prediction error.
+- **Precision@K and Recall@K:** Evaluate the quality of top-N recommendations.
+- **Diversity and Novelty:** Optional metrics to assess recommendation variety and unexpectedness.
+
+See the `evaluate_models` command for detailed evaluation results.
+
+---
+
+### Run the Project
+
+#### Workflow
+
+1. **Load Data:**  
    ```bash
    python manage.py load_data
    ```
+   Loads the review and metadata into the database using chunked processing.
 
-3. **Run the Server**:  
-   Start the Django development server:
+2. **Tune the SVD Model:**  
+   ```bash
+   python manage.py tune_svd
+   ```
+   Finds optimal hyperparameters for the matrix factorization (SVD) model.
+
+3. **Train the SVD Model:**  
+   ```bash
+   python manage.py train_mf
+   ```
+   Trains the SVD model and saves it as `svd_model.pkl`.
+
+4. **Evaluate Models:**  
+   ```bash
+   python manage.py evaluate_models
+   ```
+   Compares memory-based, SVD-based, and (in future) hybrid approaches using metrics such as RMSE, Precision@K, Recall@K, etc.
+
+5. **Run the Server:**  
    ```bash
    python manage.py runserver
    ```
+   The API endpoints become accessible.
 
-4. **Access the API**:  
-   The API for recommendations is accessible at:
-   ```bash
-   http://127.0.0.1:8000/recommendations/{user_id}/
-   ```
+#### API Endpoints
 
----
+- **Memory-Based Recommendations:**  
+  `http://127.0.0.1:8000/products/recommendations/memory/?user_id=<USER_ID>`
+  
+- **Matrix Factorization Recommendations:**  
+  `http://127.0.0.1:8000/products/recommendations/mf/?user_id=<USER_ID>`
+  
+- **Hybrid Recommendations:**  
+  `http://127.0.0.1:8000/products/recommendations/hybrid/?user_id=<USER_ID>`
 
-## API Documentation
-
-### GET /recommendations/{user_id}/
-
-- **Description**: Returns the top product recommendations for the specified user.
-- **Parameter**:  
-  - `user_id`: The ID of the user.
-- **Response**:  
-  A JSON array containing enriched product data (e.g., title, price, features, images). For example:
-  ```json
-  {
-    "recommendations": [
-      {"asin": "B00YQ6X8EO", "title": "Howard LC0008 Leather Conditioner, 8-Ounce (4-Pack)", "price": null, "features": [], "images": [...]},
-      {"asin": "B081TJ8YS3", "title": "Yes to Tomatoes Detoxifying Charcoal Cleanser (Pack of 2)", "price": null, "features": [], "images": [...]}
-    ]
-  }
-  ```
-
----
-
-## Future Improvements
-
-- **Hybrid Filtering**:  
-  Integrate content-based filtering using product metadata to address cold start problems and further enhance recommendation accuracy.
-- **Matrix Factorization**:  
-  Implement SVD or ALS-based models to reduce dimensionality and improve scalability.
-- **Temporal Dynamics**:  
-  Incorporate time-aware factors to account for changes in user preferences over time.
-- **Explainability**:  
-  Develop mechanisms to explain why specific recommendations were made.
-- **Scalability Enhancements**:  
-  Optimize the system using sparse matrices, caching, or approximate nearest neighbor algorithms.
-- **Frontend Integration**:  
-  Build a user interface to display recommendations and gather user feedback, further refining the system.
-
----
-
-This README provides a comprehensive overview of the Intelligent E-commerce Recommendation System, covering data sources, methodology, API endpoints, and future directions. It aligns with the research direction of integrating collaborative filtering with rich product metadata, paving the way for innovative extensions in your master's thesis.
-
-Feel free to modify or extend this document as your project evolves!
+*Example response:*
+```json
+{
+  "recommendations": [
+    {"asin": "B00YQ6X8EO", "title": "Howard LC0008 Leather Conditioner, 8-Ounce (4-Pack)", "price": null, "features": [], "images": [...]},
+    {"asin": "B081TJ8YS3", "title": "Yes to Tomatoes Detoxifying Charcoal Cleanser (Pack of 2)", "price": null, "features": [], "images": [...]}
+  ]
+}
 ```
+
+---
+
+### Future Improvements
+
+- **Enhance Hybrid Filtering:**  
+  Experiment with dynamic weighting strategies that adapt based on user activity and metadata richness.
+- **Matrix Factorization Enhancements:**  
+  Explore alternative methods (e.g., ALS) and advanced hyperparameter tuning.
+- **Temporal Dynamics:**  
+  Incorporate time-aware factors to capture evolving user preferences.
+- **Explainability:**  
+  Develop methods to provide clear explanations for recommendations.
+- **Scalability Enhancements:**  
+  Implement caching, batch processing, and distributed computing techniques.
+- **Frontend Integration:**  
+  Build a user interface to display recommendations and collect feedback.
+- **Thesis Documentation:**  
+  Continuously document methodologies, experiments, and findings for your thesis.
+
+---
+
+

@@ -1,7 +1,5 @@
 import datetime
-
 from django.db import models
-
 
 class Product(models.Model):
     # Unique identifier for the product (from reviews and meta)
@@ -31,7 +29,7 @@ class Product(models.Model):
 
 
 class Review(models.Model):
-    user_id = models.CharField(max_length=50)
+    user_id = models.CharField(max_length=50, db_index=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
     rating = models.FloatField()
     # The review title is specific to the review; note that the product title comes from meta
