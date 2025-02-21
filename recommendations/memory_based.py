@@ -35,13 +35,21 @@ def calculate_similarity(matrix, all_items):
     cosine similarity between users.
     """
     user_ids = list(matrix.keys())
+    if not user_ids or not all_items:
+        raise ValueError("The interaction matrix is empty. Ensure that review data is loaded properly.")
+
     ratings_matrix = np.array([
         [matrix[user].get(item, 0) for item in all_items]
         for user in user_ids
     ])
 
+    if ratings_matrix.ndim != 2 or ratings_matrix.size == 0:
+        raise ValueError("The ratings matrix is empty or not two-dimensional. Check the data preprocessing steps.")
+
     similarity_matrix = cosine_similarity(ratings_matrix)
     return similarity_matrix, user_ids
+
+
 
 def recommend_for_user(user_id, matrix, similarity_matrix, user_ids, n_recommendations=5):
     """

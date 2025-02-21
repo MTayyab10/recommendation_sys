@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'Start loading meta data from {meta_file}...'))
         meta_lines = 0
-        product_limit = 10000  # Adjust the limit as needed (currently processing first 100 products)
+        product_limit = 1000  # Adjust the limit as needed (currently processing first 100 products)
         current_product_line = 0
 
         with open(meta_file, 'r') as fp:
