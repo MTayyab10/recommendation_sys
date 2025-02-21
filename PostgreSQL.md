@@ -86,8 +86,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'recommendations',  # Or the name of your database
-        'USER': 'Tayyab10',  # Or the PostgreSQL user
-        'PASSWORD': 'your_password',  # The password for your PostgreSQL user
+        'USER': '......',  # Or the PostgreSQL user
+        'PASSWORD': '....',  # The password for your PostgreSQL user
         'HOST': 'localhost',  # Should be 'localhost' or '127.0.0.1'
         'PORT': '5432',  # Default PostgreSQL port
     }
@@ -101,5 +101,3 @@ Once the above configurations are verified and fixed, try running the Django dev
 ```bash
 python manage.py runserver
 ```
-
-If you continue encountering issues, let me know, and we can explore more options!
