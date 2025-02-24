@@ -1,5 +1,5 @@
 import pickle
-from .memory_based import create_interaction_matrix, calculate_similarity, recommend_for_user
+from .memory_movieLens import create_interaction_matrix, calculate_similarity, recommend_for_user
 from recommendations.models import Product
 
 

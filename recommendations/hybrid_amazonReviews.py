@@ -1,7 +1,7 @@
 import numpy as np
-from recommendations.memory_based import create_interaction_matrix, calculate_similarity
+from recommendations.memory_movieLens import create_interaction_matrix, calculate_similarity
 from recommendations.methods import load_svd_model  # Ensure load_svd_model is defined in your methods module
-
+import math
 
 def get_memory_based_scores(user_id, memory_matrix, similarity_matrix, user_ids):
     """
@@ -38,19 +38,32 @@ def get_svd_based_scores(user_id, mf_model, candidate_asins):
     return scores
 
 
-def compute_dynamic_weights(user_id, memory_matrix, threshold=10):
+def compute_dynamic_weights(user_id, memory_matrix, threshold=10, alpha=0.5):
     """
-    Compute dynamic weights based on the number of interactions for a given user.
-    If the user has fewer than 'threshold' interactions, assign a higher weight to the SVD model;
-    otherwise, assign a higher weight to the memory-based model.
-    Returns (w_memory, w_svd).
+    Compute dynamic weights for the hybrid model based on the user's number of interactions.
+
+    Parameters:
+      - user_id: The target user's ID.
+      - memory_matrix: Dictionary with user-item ratings.
+      - threshold: The interaction count threshold at which weights shift.
+      - alpha: Controls the steepness of the transition (tuning parameter).
+
+    Returns:
+      Tuple (w_memory, w_svd): Dynamic weights for memory-based and SVD-based scores.
+
+    Explanation:
+      Uses a logistic function to determine w_memory:
+        w_memory = 1 / (1 + exp(-alpha * (interaction_count - threshold)))
+      And w_svd = 1 - w_memory.
+      This ensures that when interaction_count << threshold, w_memory is low (thus w_svd is high),
+      and when interaction_count >> threshold, w_memory is high (w_svd is low).
     """
     user_data = memory_matrix.get(user_id, {})
     interaction_count = sum(1 for rating in user_data.values() if rating > 0)
-    if interaction_count < threshold:
-        return 0.3, 0.7  # More weight to SVD-based scores when interactions are few
-    else:
-        return 0.7, 0.3  # More weight to memory-based scores when sufficient interactions exist
+    # Logistic function for weight calculation
+    w_memory = 1 / (1 + math.exp(-alpha * (interaction_count - threshold)))
+    w_svd = 1 - w_memory
+    return w_memory, w_svd
 
 
 def hybrid_recommendation(user_id, memory_matrix, similarity_matrix, user_ids, mf_model, candidate_asins,

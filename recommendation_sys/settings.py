@@ -88,6 +88,15 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',  # This is an identifier for your cache
+    }
+}
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Celery uses Redis as the broker
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'  # Store task results in Redis
 
 
 # Password validation

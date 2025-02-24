@@ -23,6 +23,7 @@ class Command(BaseCommand):
         # Delete existing data (optional; adjust if you want to merge instead)
         Product.objects.all().delete()
         Review.objects.all().delete()
+        print('Deleted existing data...')
 
         # ----- Load Meta Data -----
         if not os.path.exists(meta_file):

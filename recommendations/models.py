@@ -11,8 +11,7 @@ class Product(models.Model):
     average_rating = models.FloatField(null=True, blank=True)
     rating_number = models.IntegerField(null=True, blank=True)
     features = models.JSONField(null=True, blank=True)
-    description = models.JSONField(null=True,
-                                   blank=True)  # Stored as JSON (list) or you can convert to TextField if needed
+    description = models.JSONField(null=True, blank=True)  # Stored as JSON (list) or you can convert to TextField if needed
     price = models.FloatField(null=True, blank=True)
     images = models.JSONField(null=True, blank=True)  # Detailed images from meta file
     videos = models.JSONField(null=True, blank=True)
@@ -55,3 +54,23 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review by {self.user_id} on {self.product.title}"
+
+
+
+class Movie(models.Model):
+    movieId = models.IntegerField(primary_key=True)
+    title = models.CharField(max_length=255)
+    genres = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.title
+
+class Rating(models.Model):
+    # Using integer for user_id since MovieLens user IDs are numbers
+    user_id = models.IntegerField()
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
+    rating = models.FloatField()
+    timestamp = models.BigIntegerField()
+
+    def __str__(self):
+        return f"User {self.user_id} - {self.movie.title} - {self.rating}"
