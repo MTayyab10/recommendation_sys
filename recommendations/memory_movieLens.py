@@ -1,8 +1,18 @@
 # recommendations/memory_movieLens.py
-
+from recommendations.models import Rating
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from recommendations.models import Rating
+
+def normalize_ratings(memory_matrix):
+    """
+    Normalize ratings in the memory matrix by subtracting the user's mean rating
+    """
+    # Normalize user ratings by subtracting the user's average rating
+    normalized_matrix = {}
+    for user, item_ratings in memory_matrix.items():
+        user_mean = np.mean(list(item_ratings.values()))
+        normalized_matrix[user] = {movie: rating - user_mean for movie, rating in item_ratings.items()}
+    return normalized_matrix
 
 def create_interaction_matrix():
     """
@@ -26,11 +36,14 @@ def create_interaction_matrix():
             if item not in user_item_matrix[user]:
                 user_item_matrix[user][item] = 0
 
-    return user_item_matrix, list(all_items)
+    # Normalize the ratings
+    normalized_matrix = normalize_ratings(user_item_matrix)
+
+    return normalized_matrix, list(all_items)
 
 def calculate_similarity(matrix, all_items):
     """
-    Convert the user–item matrix into a NumPy array and compute cosine similarity.
+    Convert the normalized user–item matrix into a NumPy array and compute cosine similarity.
     """
     user_ids = list(matrix.keys())
     ratings_matrix = np.array([[matrix[user].get(item, 0) for item in all_items] for user in user_ids])

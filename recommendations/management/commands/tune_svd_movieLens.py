@@ -31,8 +31,8 @@ class Command(BaseCommand):
 
         # Define parameter grid for SVD
         param_grid = {
-            'n_factors': [20, 50, 100],
-            'lr_all': [0.002, 0.005, 0.01],
+            'n_factors': [50, 100, 300],
+            'lr_all': [0.005, 0.01, 0.02],
             'reg_all': [0.02, 0.05, 0.1]
         }
 

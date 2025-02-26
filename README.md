@@ -99,7 +99,7 @@ This project supports two datasets:
 - **Interaction Matrix:**  
   An interaction matrix is built from review/rating data for collaborative filtering methods.
 
----
+interaction_matrix---
 
 ## Features
 
@@ -134,7 +134,7 @@ This project supports two datasets:
   Constructs a user–item (or user–movie) interaction matrix and computes cosine similarity:
   ```python
   from sklearn.metrics.pairwise import cosine_similarity
-  user_similarity = cosine_similarity(interaction_matrix)
+  user_similarity = cosine_similarity()
   ```
 
 ### Matrix Factorization (SVD)
@@ -190,6 +190,24 @@ The evaluation metrics:
 
 Results are printed to the console and can be exported for visualization in your thesis.
 
+### Evaluation Metrics – What to Expect
+If tuned well, you might see evaluation numbers similar to:
+
+**1. Memory-Based CF:**
+   - Precision@10: ~0.01 to 0.05 
+   - Recall@10: ~0.05 to 0.15
+   - Hit Rate: ~0.05 to 0.2
+   - NDCG@10: ~0.1 to 0.25
+
+**2. SVD (MF):** 
+   - Precision@10 around 0.10–0.20, Recall@10 around 0.10–0.20, RMSE around 0.90–1.0
+
+**3. Content-Based CF:** 
+   - (Depending on text quality) Precision@10 around 0.05–0.15, Recall@10 around 0.05–0.15
+
+**4. Hybrid Model:**
+   - Ideally higher than individual baselines; for example, Precision@10 around 0.15–0.25, Recall@10 around 0.15–0.25, and NDCG@10 above 0.15
+
 ---
 
 ## Advanced Enhancements
@@ -225,7 +243,6 @@ Celery handles heavy computation asynchronously:
 ## Project Structure
 
 ```
-.
 ├── README.md
 ├── data
 │   ├── All_Beauty.jsonl
@@ -387,6 +404,22 @@ The evaluation process involves:
 
 Results are printed to the console and can be exported for visualization and inclusion in your thesis.
 
+### Evaluation Metrics – What to Expect
+If tuned well, you might see evaluation numbers similar to:
+
+**1. Memory-Based CF:**
+   - Precision@10 around 0.05–0.10,  Recall@10 around 0.05–0.10 
+
+**2. SVD (MF):** 
+   - Precision@10 around 0.10–0.20, Recall@10 around 0.10–0.20, RMSE around 0.90–1.0
+
+**3. Content-Based CF:** 
+   - (Depending on text quality) Precision@10 around 0.05–0.15, Recall@10 around 0.05–0.15
+
+**4. Hybrid Model:**
+   - Ideally higher than individual baselines; for example, Precision@10 around 0.15–0.25, Recall@10 around 0.15–0.25, and NDCG@10 above 0.15
+
+
 ---
 
 ## Future Improvements
@@ -399,26 +432,3 @@ Results are printed to the console and can be exported for visualization and inc
 - **Scalability:** Utilize distributed processing (e.g., Apache Spark) and advanced caching (e.g., Redis) to handle larger datasets.
 
 ---
-
-## Next Steps
-
-1. **Extensive Evaluation:**  
-   Run the evaluation commands on larger subsets of your data and document the performance of each method.
-2. **Result Analysis:**  
-   Generate visualizations (tables, graphs) to compare the methods. Discuss findings and potential improvements in your thesis.
-3. **Thesis Documentation:**  
-   Update your thesis chapters (Methodology, Results, Discussion) with the experimental results, comparison of methods, and insights from the evaluation.
-4. **Code Refinement:**  
-   Continue refining the code, optimize performance, and ensure all components work harmoniously.
-5. **Plan Future Enhancements:**  
-   Outline future work and improvements for scalability, explainability, and integration of additional data sources.
-
----
-
-*This README provides a comprehensive guide to setting up, running, and evaluating the recommendation system for both Amazon Reviews and MovieLens datasets, while detailing the methodology, project structure, and future work. Use this as a foundation for your thesis documentation and to showcase your work during your defense.*
-
-```
-
----
-
-This version of the README.md file integrates all project aspects and provides a clear, detailed guide for both datasets, the evaluation process, and the next steps for further research. Let me know if you need any further modifications or additional sections.

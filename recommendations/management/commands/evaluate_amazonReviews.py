@@ -117,10 +117,10 @@ def evaluate_memory_user(uid, memory_matrix, similarity_matrix, user_ids, ground
     recs = [r for r in recs if r in user_candidates]
 
     # Debug prints (for a sample user, remove these later)
-    print("Memory-Based -> User:", uid)
-    print("Ground Truth:", ground_truth.get(uid, set()))
-    print("Candidate Set:", user_candidates)
-    print("Recommendations:", recs)
+    # print("Memory-Based -> User:", uid)
+    # print("Ground Truth:", ground_truth.get(uid, set()))
+    # print("Candidate Set:", user_candidates)
+    # print("Recommendations:", recs)
 
     precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
     hr = hit_rate(recs, ground_truth.get(uid, set()))
@@ -136,9 +136,9 @@ def evaluate_svd_user(uid, mf_model, candidate_items, ground_truth, k=10):
     recs = [asin for asin, _ in user_preds[:k]]
 
     # Debug prints
-    print("SVD-Based -> User:", uid)
-    print("Ground Truth:", ground_truth.get(uid, set()))
-    print("Recommendations:", recs)
+    # print("SVD-Based -> User:", uid)
+    # print("Ground Truth:", ground_truth.get(uid, set()))
+    # print("Recommendations:", recs)
 
     precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
     hr = hit_rate(recs, ground_truth.get(uid, set()))
@@ -147,9 +147,9 @@ def evaluate_svd_user(uid, mf_model, candidate_items, ground_truth, k=10):
 
 def evaluate_content_user(uid, ground_truth, k=10):
     recs = content_based_recommendation(uid, top_n=k)
-    print("Content-Based -> User:", uid)
-    print("Ground Truth:", ground_truth.get(uid, set()))
-    print("Recommendations:", recs)
+    # print("Content-Based -> User:", uid)
+    # print("Ground Truth:", ground_truth.get(uid, set()))
+    # print("Recommendations:", recs)
     precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
     hr = hit_rate(recs, ground_truth.get(uid, set()))
     ndcg = ndcg_at_k(recs, ground_truth.get(uid, set()), k)
@@ -160,9 +160,9 @@ def evaluate_hybrid_user(uid, memory_matrix, similarity_matrix, user_ids, mf_mod
         return (0, 0, 0, 0)
     recs = hybrid_recommendation(uid, memory_matrix, similarity_matrix, user_ids, mf_model, candidate_items,
                                  dynamic=True, n_recommendations=k)
-    print("Hybrid -> User:", uid)
-    print("Ground Truth:", ground_truth.get(uid, set()))
-    print("Recommendations:", recs)
+    # print("Hybrid -> User:", uid)
+    # print("Ground Truth:", ground_truth.get(uid, set()))
+    # print("Recommendations:", recs)
     precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
     hr = hit_rate(recs, ground_truth.get(uid, set()))
     ndcg = ndcg_at_k(recs, ground_truth.get(uid, set()), k)

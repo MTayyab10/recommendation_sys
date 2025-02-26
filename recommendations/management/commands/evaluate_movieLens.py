@@ -29,6 +29,13 @@ Steps:
 6. Optional: Diversity and Novelty:
    - Compute diversity using a dummy item feature matrix.
    - Compute novelty based on item popularity.
+
+Understanding Your Metrics - The key evaluation metrics are:
+
+Precision@10: The proportion of recommended items that are relevant.
+Recall@10: The proportion of relevant items that were recommended.
+Hit Rate: Whether at least one relevant item was recommended.
+NDCG@10: A ranking-based metric that rewards correct orderings
 """
 
 import random
@@ -36,23 +43,23 @@ import numpy as np
 import pandas as pd
 import datetime
 import math
-
 from django.core.management.base import BaseCommand
 from django.db.models import Count
 from recommendations.models import Rating, Movie
 from recommendations.memory_movieLens import create_interaction_matrix, calculate_similarity, recommend_for_user
 from recommendations.hybrid_movieLens import hybrid_recommendation
-from recommendations.content_movieLens import content_based_recommendation
+from recommendations.content_movieLens import content_based_recommendation, fallback_recommendation
 from surprise import Dataset, Reader, SVD, accuracy
 from surprise.model_selection import train_test_split
 from joblib import Parallel, delayed
 
 # ---------------------- Evaluation Metrics ----------------------
+
 def precision_recall_at_k(recommended, ground_truth, k):
-    recommended = recommended[:k]
-    relevant = set(recommended) & ground_truth
-    precision = len(relevant) / k if k > 0 else 0
-    recall = len(relevant) / len(ground_truth) if ground_truth else 0
+    recommended = recommended[:k]  # Get top-k recommended items
+    relevant = set(recommended) & ground_truth  # Find intersection between recommended and relevant movies
+    precision = len(relevant) / k if k > 0 else 0  # Precision = relevant / recommended
+    recall = len(relevant) / len(ground_truth) if ground_truth else 0  # Recall = relevant / ground_truth
     return precision, recall
 
 def hit_rate(recommended, ground_truth):
@@ -66,6 +73,15 @@ def ndcg_at_k(recommended, ground_truth, k):
     ideal_rels = min(len(ground_truth), k)
     idcg = sum(1.0 / np.log2(i + 2) for i in range(ideal_rels))
     return dcg / idcg if idcg > 0 else 0.0
+
+# A dummy compute_ndcg function for demonstration.
+def compute_ndcg(recs, relevant, k):
+    # For simplicity, we'll return 0 if no relevant items, otherwise a dummy value.
+    if not relevant:
+        return 0.0
+    # A placeholder: you would implement the actual NDCG calculation here.
+    return sum(1.0 / (i+1) for i, rec in enumerate(recs) if rec in relevant) / len(relevant)
+
 
 def compute_diversity(recommended, item_feature_matrix):
     from sklearn.metrics.pairwise import cosine_similarity
@@ -105,6 +121,7 @@ def leave_one_out_split(df):
     return train_df, test_df
 
 # ---------------------- Per-User Evaluation Functions ----------------------
+
 def evaluate_memory_user(uid, memory_matrix, similarity_matrix, user_ids, ground_truth, candidate_movies, k=10):
     if uid not in memory_matrix:
         return (0, 0, 0, 0)
@@ -119,7 +136,25 @@ def evaluate_memory_user(uid, memory_matrix, similarity_matrix, user_ids, ground
     precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
     hr = hit_rate(recs, ground_truth.get(uid, set()))
     ndcg = ndcg_at_k(recs, ground_truth.get(uid, set()), k)
-    return (precision, recall, hr, ndcg)
+    return precision, recall, hr, ndcg
+
+
+def evaluate_content_user(uid, ground_truth, k=10):
+    recs = content_based_recommendation(uid, top_n=k)
+    # print("Content-Based -> User:", uid)
+    # print("Ground Truth:", ground_truth.get(uid, set()))
+    # print("Recommendations:", recs)
+    # print(f"User {uid} Recommendations: {recs}")
+
+    precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
+
+    # print(f"User {uid} Precision@{k}: {precision}, Recall@{k}: {recall}")
+    # print(f"User {uid} Ground Truth: {ground_truth.get(uid, set())}")
+
+    hr = hit_rate(recs, ground_truth.get(uid, set()))
+    ndcg = ndcg_at_k(recs, ground_truth.get(uid, set()), k)
+    return precision, recall, hr, ndcg
+
 
 def evaluate_svd_user(uid, mf_model, candidate_movies, ground_truth, k=10):
     user_preds = []
@@ -134,17 +169,8 @@ def evaluate_svd_user(uid, mf_model, candidate_movies, ground_truth, k=10):
     precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
     hr = hit_rate(recs, ground_truth.get(uid, set()))
     ndcg = ndcg_at_k(recs, ground_truth.get(uid, set()), k)
-    return (precision, recall, hr, ndcg)
+    return precision, recall, hr, ndcg
 
-def evaluate_content_user(uid, ground_truth, k=10):
-    recs = content_based_recommendation(uid, top_n=k)
-    # print("Content-Based -> User:", uid)
-    # print("Ground Truth:", ground_truth.get(uid, set()))
-    # print("Recommendations:", recs)
-    precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
-    hr = hit_rate(recs, ground_truth.get(uid, set()))
-    ndcg = ndcg_at_k(recs, ground_truth.get(uid, set()), k)
-    return (precision, recall, hr, ndcg)
 
 def evaluate_hybrid_user(uid, memory_matrix, similarity_matrix, user_ids, mf_model, candidate_movies, ground_truth, k=10):
     if uid not in memory_matrix:
@@ -157,9 +183,11 @@ def evaluate_hybrid_user(uid, memory_matrix, similarity_matrix, user_ids, mf_mod
     precision, recall = precision_recall_at_k(recs, ground_truth.get(uid, set()), k)
     hr = hit_rate(recs, ground_truth.get(uid, set()))
     ndcg = ndcg_at_k(recs, ground_truth.get(uid, set()), k)
-    return (precision, recall, hr, ndcg)
+    return precision, recall, hr, ndcg
+
 
 # ---------------------- Main Evaluation Command ----------------------
+
 class Command(BaseCommand):
     help = 'Evaluate recommendation models (memory-based, SVD, content-based, and hybrid) on the MovieLens dataset using parallel processing.'
 
@@ -183,10 +211,10 @@ class Command(BaseCommand):
         self.stdout.write("Performing leave-one-out split...")
         train_df, test_df = leave_one_out_split(df)
 
-        # Build ground truth: consider ratings >= 4 as relevant
+        # Build ground truth: consider ratings >= 3 as relevant
         ground_truth = {}
         for _, row in test_df.iterrows():
-            if row['rating'] >= 4:
+            if row['rating'] >= 3:
                 uid = row['user_id']
                 movieId = row['movieId']
                 ground_truth.setdefault(uid, set()).add(movieId)
@@ -199,37 +227,25 @@ class Command(BaseCommand):
             return
 
         # -------------------------
-        # Memory-Based Evaluation
+        # Memory-Based Evaluation (MovieLens)
         # -------------------------
+
         self.stdout.write("Evaluating Memory-Based Collaborative Filtering...")
-        memory_matrix = {}
-        all_movies = set()
-        for _, row in train_df.iterrows():
-            uid = row['user_id']
-            movieId = row['movieId']
-            memory_matrix.setdefault(uid, {})[movieId] = row['rating']
-            all_movies.add(movieId)
-        for uid in memory_matrix:
-            for movieId in all_movies:
-                if movieId not in memory_matrix[uid]:
-                    memory_matrix[uid][movieId] = 0
-        similarity_matrix, user_ids = calculate_similarity(memory_matrix, list(all_movies))
+        memory_matrix, all_movies = create_interaction_matrix()
+        similarity_matrix, user_ids = calculate_similarity(memory_matrix, all_movies)
 
-        # Expand candidate set: use top 200 popular movies
+        # Expand candidate set: use top 500 popular movies from training data
         popular_movies = sorted(train_df.groupby('movieId').size().to_dict().items(), key=lambda x: x[1], reverse=True)
-        candidate_movies = [movieId for movieId, _ in popular_movies][:200]
+        print("Total popular movies:", len(popular_movies))
+        candidate_movies = [movieId for movieId, _ in popular_movies][:1000]
+        print("Candidate movies sample:", candidate_movies[:10])
 
+        # Use eligible users; sample up to 50 for evaluation
         sampled_users = eligible_users if len(eligible_users) <= 50 else random.sample(eligible_users, 50)
 
-        # Debug print for one sample user
-        sample_uid = sampled_users[0]
-        print("Sample User (Memory-Based):", sample_uid)
-        print("Ground Truth:", ground_truth.get(sample_uid, set()))
-        print("Memory-Based Recommendations:",
-              recommend_for_user(sample_uid, memory_matrix, similarity_matrix, user_ids, n_recommendations=10))
-
-        results_memory = Parallel(n_jobs=-1, backend="threading", verbose=10)(
-            delayed(evaluate_memory_user)(uid, memory_matrix, similarity_matrix, user_ids, ground_truth, candidate_movies, k=10)
+        results_memory = Parallel(n_jobs=-1, backend="threading", verbose=5)(
+            delayed(evaluate_memory_user)(uid, memory_matrix, similarity_matrix, user_ids, ground_truth,
+                                          candidate_movies, k=50)
             for uid in sampled_users
         )
         precisions_memory, recalls_memory, hit_rates_memory, ndcg_scores_memory = zip(*results_memory)
@@ -242,8 +258,29 @@ class Command(BaseCommand):
         ))
 
         # -------------------------
+        # Content-Based Evaluation (MovieLens)
+        # -------------------------
+
+        self.stdout.write("Evaluating Content-Based Filtering...")
+        results_cb = Parallel(n_jobs=-1, backend="threading", verbose=5)(
+            delayed(evaluate_content_user)(uid, ground_truth, k=10)
+            for uid in sampled_users
+        )
+
+        precisions_cb, recalls_cb, hit_rates_cb, ndcg_scores_cb = zip(*results_cb)
+        avg_precision_cb = np.mean(precisions_cb)
+        avg_recall_cb = np.mean(recalls_cb)
+        avg_hit_rate_cb = np.mean(hit_rates_cb)
+        avg_ndcg_cb = np.mean(ndcg_scores_cb)
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Content-Based CF - Precision@10: {avg_precision_cb:.4f}, Recall@10: {avg_recall_cb:.4f}, Hit Rate: {avg_hit_rate_cb:.4f}, NDCG@10: {avg_ndcg_cb:.4f}"
+        ))
+
+        # -------------------------
         # Matrix Factorization (SVD) Evaluation
         # -------------------------
+
         self.stdout.write("Evaluating Matrix Factorization (SVD) approach...")
         reader = Reader(rating_scale=(0.5, 5))
         data = Dataset.load_from_df(train_df[['user_id', 'movieId', 'rating']], reader)
@@ -256,7 +293,7 @@ class Command(BaseCommand):
         rmse_value = accuracy.rmse(predictions, verbose=False)
         self.stdout.write(self.style.SUCCESS(f"SVD Model RMSE on test set: {rmse_value:.4f}"))
 
-        results_svd = Parallel(n_jobs=-1, backend="threading", verbose=10)(
+        results_svd = Parallel(n_jobs=-1, backend="threading", verbose=5)(
             delayed(evaluate_svd_user)(uid, mf_model, candidate_movies, ground_truth, k=10)
             for uid in sampled_users
         )
@@ -270,27 +307,11 @@ class Command(BaseCommand):
         ))
 
         # -------------------------
-        # Content-Based Evaluation
-        # -------------------------
-        self.stdout.write("Evaluating Content-Based Filtering...")
-        results_cb = Parallel(n_jobs=-1, backend="threading", verbose=10)(
-            delayed(evaluate_content_user)(uid, ground_truth, k=10)
-            for uid in sampled_users
-        )
-        precisions_cb, recalls_cb, hit_rates_cb, ndcg_scores_cb = zip(*results_cb)
-        avg_precision_cb = np.mean(precisions_cb)
-        avg_recall_cb = np.mean(recalls_cb)
-        avg_hit_rate_cb = np.mean(hit_rates_cb)
-        avg_ndcg_cb = np.mean(ndcg_scores_cb)
-        self.stdout.write(self.style.SUCCESS(
-            f"Content-Based CF - Precision@10: {avg_precision_cb:.4f}, Recall@10: {avg_recall_cb:.4f}, Hit Rate: {avg_hit_rate_cb:.4f}, NDCG@10: {avg_ndcg_cb:.4f}"
-        ))
-
-        # -------------------------
         # Hybrid Model Evaluation
         # -------------------------
+
         self.stdout.write("Evaluating Hybrid Recommendation Model...")
-        results_hybrid = Parallel(n_jobs=-1, backend="threading", verbose=10)(
+        results_hybrid = Parallel(n_jobs=-1, backend="threading", verbose=5)(
             delayed(evaluate_hybrid_user)(uid, memory_matrix, similarity_matrix, user_ids, mf_model, candidate_movies, ground_truth, k=10)
             for uid in sampled_users
         )
@@ -306,6 +327,7 @@ class Command(BaseCommand):
         # -------------------------
         # Optional: Diversity & Novelty for Memory-Based Recommendations
         # -------------------------
+
         # item_feature_matrix = {movieId: np.random.rand(10) for movieId in list(all_movies)}
         # diversity_memory = np.mean([
         #     # Use raw memory-based recommendations (without candidate filtering) for diversity
