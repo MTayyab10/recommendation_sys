@@ -1,7 +1,3 @@
-The error you're seeing (`could not translate host name "localhost" to address: nodename nor servname provided, or not known`) typically occurs when Django (or any other application) is unable to resolve the hostname `localhost` to the corresponding IP address (usually `127.0.0.1` for local connections).
-
-### Here’s how to troubleshoot and resolve the issue:
-
 ### 1. **Check PostgreSQL Service Status**
 Make sure that PostgreSQL is running. You can check its status and restart the service if necessary.
 
@@ -48,7 +44,7 @@ It’s possible that the PostgreSQL server is not properly configured to accept 
 Try connecting to PostgreSQL directly using `psql`:
 
 ```bash
-psql -h localhost -U Tayyab10 -d recommendations  # Replace with your actual database name
+psql -h localhost -U Tayyab10 -d recommendations 
 ```
 
 This will test if PostgreSQL is accessible via `localhost` using the correct user.
