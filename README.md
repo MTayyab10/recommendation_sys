@@ -1,5 +1,4 @@
-## Collaborative Filtering for Intelligent E-commerce Recommendation Systems:  
-A Comparative Analysis of Memory-Based, Matrix Factorization, Content-Based, and Hybrid Approaches
+## A Comparative Study of Collaborative Filtering Approaches for E-commerce Recommendations
 
 ### Overview
 
